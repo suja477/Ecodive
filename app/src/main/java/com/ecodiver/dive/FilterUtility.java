@@ -6,16 +6,9 @@ import android.graphics.ColorMatrix;
 import android.util.Log;
 
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.imgcodecs.Imgcodecs;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Created by Suja Manu on 10-12-2020.
@@ -155,13 +148,13 @@ class FilterUtility {
         return new float[]{r, g, b};
     }
 
-    public static int[] normalizingInterval(ArrayList<Integer> normArray) {
-        int high = 255;
-        int low = 0;
-        int maxDist = 0;
+    public static float[] normalizingInterval(ArrayList<Float> normArray) {
+        float high = 255;
+        float low = 0;
+        float maxDist = 0;
 
         for (int i = 1; i < normArray.size(); i++) {
-            int dist = normArray.get(i) - normArray.get(i - 1);
+            float dist = normArray.get(i) - normArray.get(i - 1);
             if (dist > maxDist) {
                 maxDist = dist;
                 high = normArray.get(i);
@@ -169,10 +162,116 @@ class FilterUtility {
             }
         }
 
-        return new int[]{low, high};
+        return new float[]{low, high};
     }
 
     public static ColorMatrix applyFilter(Bitmap bitmap) {
+        float blueMagicValue = 1.2f;
+
+        int numOfPixels = bitmap.getWidth() * bitmap.getHeight();
+        int thresholdRatio = 2000;
+        int thresholdLevel = numOfPixels / thresholdRatio;
+        // Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), filePathImage);
+        float hue = 0f;
+        int maxHueShift = 120;
+        int minAvgRed = 60;
+
+
+        ArrayList<Integer> redBins = new ArrayList();
+        ArrayList<Integer> greenBins = new ArrayList();
+        ArrayList<Integer> blueBins = new ArrayList();
+        // Initialize objects
+        for (int i = 0; i < 256; i++) {
+            redBins.add(0);
+            greenBins.add(0);
+            blueBins.add(0);
+        }
+        float[] rgb = FilterUtility.getAverageColorRGB(bitmap);
+
+        // Calculate shift amount:
+        float newAvgRed = rgb[0];
+        while (newAvgRed < minAvgRed) {
+            rgb = FilterUtility.hueShiftRed(rgb[0], rgb[1], rgb[2], hue);
+            newAvgRed = rgb[0] + rgb[1] + rgb[2];
+            hue++;
+            if (hue > maxHueShift) newAvgRed = 60; // Max value
+
+        }
+        Log.i("APPLYFILTER ", " newavgred and hue " + newAvgRed + "---" + hue);
+
+
+        int[] pixels = new int[(bitmap.getWidth() * bitmap.getHeight())];
+        bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+
+       for (int i = 0; i < pixels.length; i++) {
+            float red = Color.red(pixels[i]);
+            int green = Color.green(pixels[i]);
+            int blue = Color.blue(pixels[i]);
+           float[] shifted = hueShiftRed(red, green, blue, hue);// Use new calculated red value
+            red = shifted[0] + shifted[1] + shifted[2];
+            red = Math.min(255, Math.max(0, red));
+           red = Math.round(red);//converting to int
+            redBins.set((int) red, redBins.get((int) red) + 1);
+            // Log.i("red added",redBins.get(red)+"--"+red);
+            greenBins.set(green, greenBins.get(green) + 1);
+            blueBins.set(blue, blueBins.get(blue) + 1);
+            redBins.add((int) red);///check here---------------------
+            greenBins.add(green);
+            blueBins.add(blue);
+
+        }
+
+
+        ArrayList<Float> normalizedRed = new ArrayList();
+        ArrayList<Float> normalizedGreen = new ArrayList();
+        ArrayList<Float> normalizedBlue = new ArrayList();
+
+        // Push 0 as start value in normalize array:
+        normalizedRed.add(0f);
+        normalizedGreen.add(0f);
+        normalizedBlue.add(0f);
+        // Find values under threshold:
+        for (int i = 0; i < 256; i++) {
+           if (redBins.get(i) - thresholdLevel < 2) normalizedRed.add((float) i);
+            if (greenBins.get(i) - thresholdLevel < 2) normalizedGreen.add((float) i);
+            if (blueBins.get(i) - thresholdLevel < 2) normalizedBlue.add((float) i);
+        }
+// Push 255 as end value in normalize array:
+        normalizedRed.add(255f);
+        normalizedGreen.add(255f);
+        normalizedBlue.add(255f);
+
+        float[] adjustRed;//;= new int[3];
+        adjustRed = normalizingInterval(normalizedRed);
+        float[] adjustGreen;//= new int[3];
+        adjustGreen = normalizingInterval(normalizedGreen);
+        float[] adjustBlue;//= new int[3];
+        adjustBlue = normalizingInterval(normalizedBlue);
+
+        // Make histogram:
+        float[] shifted = hueShiftRed(1, 1, 1, hue);
+
+        float redGain = (float) 256 / (adjustRed[1] - adjustRed[0]);
+        float greenGain = (float) 256 / (adjustGreen[1] - adjustGreen[0]);
+        float blueGain = (float) 256 / (adjustBlue[1] - adjustBlue[0]);
+
+        float redOffset = (float) (-adjustRed[0] / 256) * redGain;
+        float greenOffset = (float) (-adjustGreen[0] / 256) * greenGain;
+        float blueOffset = (float) (-adjustBlue[0] / 256) * blueGain;
+
+        float adjstRed = shifted[0] * redGain;
+        float adjstRedGreen = shifted[1] * redGain;
+        float adjstRedBlue = (float) (shifted[2] * redGain * blueMagicValue);
+        Log.i("APPLYFILTER ", "histogram  done--------" + adjstRed + " " + adjstRedGreen + " " + adjstRedBlue + " " +
+                redOffset + " " + greenGain + " " + greenOffset + " " + blueGain + " " + blueOffset);
+
+        return new ColorMatrix(new float[]{
+                adjstRed, adjstRedGreen, adjstRedBlue, 0, redOffset,
+                0, greenGain, 0, 0, greenOffset,
+                0, 0, blueGain, 0, blueOffset,
+                0, 0, 0, 1, 0});
+    }
+    public static ColorMatrix applyFilterUsingOpenCV(Bitmap bitmap) {
         float blueMagicValue = 1.2f;
 
         int numOfPixels = bitmap.getWidth() * bitmap.getHeight();
@@ -206,72 +305,45 @@ class FilterUtility {
         }
 
 
-
-        int[] pixels = new int[(bitmap.getWidth() * bitmap.getHeight())];
-        bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-
-        for (int i = 0; i < pixels.length; i++) {
-            float red = Color.red(pixels[i]);
-            int green = Color.green(pixels[i]);
-            int blue = Color.blue(pixels[i]);
-          //  float[] shifted = hueShiftRed(red, green, blue, hue);// Use new calculated red value
-           // red = shifted[0] + shifted[1] + shifted[2];
-           // red = Math.min(255, Math.max(0, red));
-          //  red = Math.round(red);//converting to int
-          //  redBins.set((int) red, redBins.get((int) red) + 1);
-            // Log.i("red added",redBins.get(red)+"--"+red);
-            greenBins.set(green, greenBins.get(green) + 1);
-            blueBins.set(blue, blueBins.get(blue) + 1);
-           /* redBins.add(red);///check here---------------------
-            greenBins.add(green);
-            blueBins.add(blue);*/
-
-        }
-
-
-
-
         //createHistogram(newbitmap);
 
 
-        ArrayList<Integer> normalizedRed = new ArrayList();
-        ArrayList<Integer> normalizedGreen = new ArrayList();
-        ArrayList<Integer> normalizedBlue = new ArrayList();
-        // Push 0 as start value in normalize array:
-     //   normalizedRed.add(0);
-        normalizedGreen.add(0);
-        normalizedBlue.add(0);
-        // Find values under threshold:
-        for (int i = 0; i < 256; i++) {
-          //  if (redBins.get(i) - thresholdLevel < 2) normalizedRed.add(i);
-            if (greenBins.get(i) - thresholdLevel < 2) normalizedGreen.add(i);
-            if (blueBins.get(i) - thresholdLevel < 2) normalizedBlue.add(i);
-        }
-// Push 255 as end value in normalize array:
-      //  normalizedRed.add(255);
-        normalizedGreen.add(255);
-        normalizedBlue.add(255);
+        ArrayList<Float> normalizedRed = new ArrayList();
+        ArrayList<Float> normalizedGreen = new ArrayList();
+        ArrayList<Float> normalizedBlue = new ArrayList();
+
 //-------------------------------------------------------------------------
+        Mat originalImage = new Mat();
+        Utils.bitmapToMat(bitmap.copy(Bitmap.Config.ARGB_8888,true), originalImage);
+        ArrayList newRedGreen=MyOpencv.createHistogramBlueGreen(originalImage);
+
+        float[] blue= (float[]) newRedGreen.get(0);
+        float[] green= (float[]) newRedGreen.get(1);
         //shift image and create seperate value for normalized redbin
         Bitmap newbitmap=hueShiftmethod(bitmap,hue);
         // Using Arrays.asList() method
         Mat imageMat = new Mat();
         Utils.bitmapToMat(newbitmap, imageMat);
 
-        float[] red=MyOpencv.createHistogram(imageMat);
+
+        float[] red=  MyOpencv.createHistogram(imageMat);
 
         for(int i =0;i<red.length;i++)
         {
             /* We are adding each array's element to the ArrayList*/
-            normalizedRed.add((int) red[i]);
+            normalizedRed.add((float) red[i]);
+            normalizedBlue.add((float) blue[i]);
+            normalizedGreen.add((float) green[i]);
         }
-   //--------------------------------------------------------------
 
-        int[] adjustRed;//;= new int[3];
+
+        //--------------------------------------------------------------
+
+        float[] adjustRed;//;= new int[3];
         adjustRed = normalizingInterval(normalizedRed);
-        int[] adjustGreen;//= new int[3];
+        float[] adjustGreen;//= new int[3];
         adjustGreen = normalizingInterval(normalizedGreen);
-        int[] adjustBlue;//= new int[3];
+        float[] adjustBlue;//= new int[3];
         adjustBlue = normalizingInterval(normalizedBlue);
 
         // Make histogram:

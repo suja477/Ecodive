@@ -5,7 +5,17 @@ import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.util.Log;
 
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Created by Suja Manu on 10-12-2020.
@@ -65,7 +75,7 @@ class FilterUtility {
     }
 
     // hue-range: [0, 360] -> Default = 0
-    public static Bitmap hue(Bitmap bitmap, float hue) {
+    public static Bitmap hueShiftmethod(Bitmap bitmap, float hue) {
         if (bitmap == null) {
             return bitmap;
         }
@@ -87,20 +97,20 @@ class FilterUtility {
             }
         }
 
-        bitmap.recycle();
-        bitmap = null;
+       // bitmap.recycle();
+       // bitmap = null;
 
         return newBitmap;
     }
-/*
 
-    public static void createHistogram(Bitmap bitmap) {
+
+    public static int[] createHistogram(Bitmap bitmap) {
         int[] redBins = new int[256];
 
         int[] pixels = new int[bitmap.getWidth() * bitmap.getHeight()];
         bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
 
-        for (int i = 0; i <= pixels.length; i++) {
+        for (int i = 0; i < pixels.length; i++) {
             int red = Color.red(pixels[i]);
             redBins[i] = red;
 
@@ -130,8 +140,9 @@ class FilterUtility {
             }
 
         }
+        return redBins;
     }
-*/
+
 
     public static float[] hueShiftRed(float r, float g, float b, float h) {
         float U = (float) Math.cos(h * Math.PI / 180);
@@ -203,11 +214,11 @@ class FilterUtility {
             float red = Color.red(pixels[i]);
             int green = Color.green(pixels[i]);
             int blue = Color.blue(pixels[i]);
-            float[] shifted = hueShiftRed(red, green, blue, hue);// Use new calculated red value
-            red = shifted[0] + shifted[1] + shifted[2];
-            red = Math.min(255, Math.max(0, red));
-            red = Math.round(red);//converting to int
-            redBins.set((int) red, redBins.get((int) red) + 1);
+          //  float[] shifted = hueShiftRed(red, green, blue, hue);// Use new calculated red value
+           // red = shifted[0] + shifted[1] + shifted[2];
+           // red = Math.min(255, Math.max(0, red));
+          //  red = Math.round(red);//converting to int
+          //  redBins.set((int) red, redBins.get((int) red) + 1);
             // Log.i("red added",redBins.get(red)+"--"+red);
             greenBins.set(green, greenBins.get(green) + 1);
             blueBins.set(blue, blueBins.get(blue) + 1);
@@ -216,23 +227,45 @@ class FilterUtility {
             blueBins.add(blue);*/
 
         }
+
+
+
+
+        //createHistogram(newbitmap);
+
+
         ArrayList<Integer> normalizedRed = new ArrayList();
         ArrayList<Integer> normalizedGreen = new ArrayList();
         ArrayList<Integer> normalizedBlue = new ArrayList();
         // Push 0 as start value in normalize array:
-        normalizedRed.add(0);
+     //   normalizedRed.add(0);
         normalizedGreen.add(0);
         normalizedBlue.add(0);
         // Find values under threshold:
         for (int i = 0; i < 256; i++) {
-            if (redBins.get(i) - thresholdLevel < 2) normalizedRed.add(i);
+          //  if (redBins.get(i) - thresholdLevel < 2) normalizedRed.add(i);
             if (greenBins.get(i) - thresholdLevel < 2) normalizedGreen.add(i);
             if (blueBins.get(i) - thresholdLevel < 2) normalizedBlue.add(i);
         }
 // Push 255 as end value in normalize array:
-        normalizedRed.add(255);
+      //  normalizedRed.add(255);
         normalizedGreen.add(255);
         normalizedBlue.add(255);
+//-------------------------------------------------------------------------
+        //shift image and create seperate value for normalized redbin
+        Bitmap newbitmap=hueShiftmethod(bitmap,hue);
+        // Using Arrays.asList() method
+        Mat imageMat = new Mat();
+        Utils.bitmapToMat(newbitmap, imageMat);
+
+        float[] red=MyOpencv.createHistogram(imageMat);
+
+        for(int i =0;i<red.length;i++)
+        {
+            /* We are adding each array's element to the ArrayList*/
+            normalizedRed.add((int) red[i]);
+        }
+   //--------------------------------------------------------------
 
         int[] adjustRed;//;= new int[3];
         adjustRed = normalizingInterval(normalizedRed);

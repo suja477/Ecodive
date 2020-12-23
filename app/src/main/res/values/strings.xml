@@ -2,4 +2,8 @@
     <string name="app_name">Eco Diver</string>
     <string name="pic_select">Select an image</string>
     <string name="apply_filter">Restore color</string>
+    <string name="sepia">Sepia</string>
+    <string name="gray">GrayScale</string>
+    <string name="Save">save</string>
+    <string name="share">share</string>
 </resources>

@@ -164,10 +164,15 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             filePathImage = data.getData();
             Log.i("imageupload", filePathImage.toString());
+            Intent filterIntent= new Intent(getApplicationContext(),ImageActivity.class);
+            Bundle bundle=new Bundle();
+            bundle.putParcelable("IMAGE",filePathImage);
+            filterIntent.putExtra("BUNDLE_EXTRA",bundle);
 
-                imagepath=filePathImage;
-                Picasso.with(this).load(filePathImage).fit().
-                        centerCrop().into(ivUploadImage1);
+            startActivity(filterIntent);
+              //  imagepath=filePathImage;//remove
+             //   Picasso.with(this).load(filePathImage).fit().
+             //           centerCrop().into(ivUploadImage1);
            // Bitmap bitmap = ((BitmapDrawable)ivUploadImage1.getDrawable()).getBitmap();
 
           //      Drawable drawable = new BitmapDrawable(getResources(), bitmap);

@@ -45,15 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int WRITE_EXTERNAL_STORAGE = 1;
     private static final int READ_EXTERNAL_STORAGE = 1;
     private ImageView ivUploadImage1;
-    private ImageView ivFilteredImage;
-    private ImageView ivGrayImage;
-    private ImageView sketchImage;
-    private Button btnFilterImage;
+
     private Uri filePathImage;
     private String TAG;
     private Bitmap bitmap;
     private  ProgressDialog progDailog;
     public static Uri imagepath;
+    private ImageView ivUploadVideo;
 
     public void onResume()
     {
@@ -87,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ivUploadImage1 = findViewById(R.id.btn_image1);
-        ivFilteredImage=findViewById(R.id.btn_image2);
+        ivUploadVideo=findViewById(R.id.btn_image2);
       //  ivGrayImage=findViewById(R.id.gray_image);
       //  sketchImage=findViewById(R.id.sketch_image);
 //button to upload image
@@ -98,38 +96,10 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-        btnFilterImage = findViewById(R.id.btn_applyfiltr);
-
-        btnFilterImage.setOnClickListener(new View.OnClickListener() {
-                   @Override
-            public void onClick(View v) {
-                Bitmap bitmap = ((BitmapDrawable)ivUploadImage1.getDrawable()).getBitmap();
-                       showProgressDialog();
-                       if(bitmap!=null){
-                           Bitmap newbitmap=FilterUtility.applyOtherFilter(bitmap);
-                          // Bitmap sepia=FilterUtility.sepiaFilter(bitmap);
-                        //   ivGrayImage.setImageBitmap(newbitmap);
-                        //   sketchImage.setImageBitmap(sepia);
-                           }
-               // ColorMatrix cm = FilterUtility.applyFilter(bitmap);
-              new FilterAsyncTask(getApplicationContext(),new PrivateAsyncTask()).execute(bitmap);
-             //   new GreyFilter(getApplicationContext(),new PrivateAsyncTask()).execute(bitmap);
-                    /* ColorMatrix cm = new ColorMatrix(new float[]
-                               {
-                                      1.0191516f, 0.11369972f, -0.15909073, 0, 0,
-                                       0, 1, 0, 0, 0,
-                                       0, 0, 1, 0, 0,
-                                       0, 0, 0, 1, 0
-                               });
-             final ColorFilter filter = new ColorMatrixColorFilter(cm);
-            ivUploadImage1.getDrawable().setColorFilter(filter);*/
-            }
-        });
-
 
     }
 
-    private void showProgressDialog() {
+  /*  private void showProgressDialog() {
         progDailog = new ProgressDialog(MainActivity.this);
         progDailog.setMessage("Loading...");
         progDailog.setIndeterminate(false);
@@ -137,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         progDailog.setCancelable(true);
         progDailog.show();
     }
-
+*/
 
     //open image chooser and upload image
     public void showFileChooser() {
@@ -195,11 +165,11 @@ public class MainActivity extends AppCompatActivity {
         public void onTaskComplete(ColorMatrix result) {
                   if(result!=null){
                   final ColorFilter filter = new ColorMatrixColorFilter(result);
-                  Picasso.with(getApplicationContext()).load(filePathImage).fit().
+              /*    Picasso.with(getApplicationContext()).load(filePathImage).fit().
                           centerCrop().into(ivFilteredImage);
                   ivFilteredImage.setColorFilter(filter);
                   progDailog.dismiss();
-                  //FilterUtility.hue()
+                */  //FilterUtility.hue()
                  // ivUploadImage1.getDrawable().setColorFilter(filter);
                   Log.i("APPLY FILTER","filter applied");
               //    Bitmap bitmap = ((BitmapDrawable)ivUploadImage1.getDrawable()).getBitmap();
@@ -212,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onTaskComplete(Bitmap bitmap) {
             if(bitmap!=null){
-                ivGrayImage.setImageBitmap(bitmap);
+             ///   ivGrayImage.setImageBitmap(bitmap);
                 progDailog.dismiss();
             }
         }

@@ -208,7 +208,7 @@ class FilterUtility {
             int green = Color.green(pixels[i]);
             int blue = Color.blue(pixels[i]);
            float[] shifted = hueShiftRed(red, green, blue, hue);// Use new calculated red value
-            red = shifted[0] + shifted[1] + shifted[2];
+            red = shifted[0] + shifted[1] + shifted[2];//this is an important step
             red = Math.min(255, Math.max(0, red));
            red = Math.round(red);//converting to int
             redBins.set((int) red, redBins.get((int) red) + 1);

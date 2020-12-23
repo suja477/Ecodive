@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Eco Diver</string>
+    <string name="pic_select">Select an image</string>
+    <string name="apply_filter">Restore color</string>
+</resources>

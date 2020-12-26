@@ -3,8 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:layout_marginLeft="@dimen/dim_8"
+    android:layout_marginRight="@dimen/dim_8"
+    android:layout_marginTop="@dimen/dim_24"
+    android:layout_marginBottom="@dimen/dim_24"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
     <Button
         android:id="@+id/btn_save"
         android:text="@string/Save"
@@ -14,23 +19,28 @@
         android:layout_height="wrap_content"
         android:onClick="saveImage"
         android:layout_gravity="center"/>
-    <Button
+    <ImageView
+        android:padding="@dimen/dim_8"
         android:id="@+id/btn_share"
-       android:text="@string/share"
+        android:src="@drawable/baseline_share_white_18dp"
+        android:text="@string/share"
         android:layout_toLeftOf="@id/btn_save"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="shareImage"
         android:layout_marginRight="@dimen/dim_8"
         android:layout_gravity="center"/>
+
     <LinearLayout
-        android:layout_below="@id/btn_share"
         android:id="@+id/lin_lyt_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/dim_24"
+        android:layout_below="@id/btn_share"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="@dimen/dim_8"
+        android:gravity="center"
         android:orientation="vertical">
-<!--
+        <!--
         <ImageView
             android:id="@+id/imageView"
             android:layout_width="match_parent"
@@ -41,33 +51,50 @@
         <android.opengl.GLSurfaceView
             android:id="@+id/gpusurfaceview"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
-           />
+            android:layout_height="300dp"
+            android:layout_gravity="center_vertical" />
     </LinearLayout>
 
-<LinearLayout
-    android:layout_below="@id/lin_lyt_filter"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingBottom="@dimen/dim_8">
-
-    <Button
-        android:paddingRight="@dimen/dim_8"
-        android:id="@+id/btn_sepia"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/lyt_btn_sepia"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/sepia"
-        android:layout_marginRight="@dimen/dim_8"
-         />
+        android:layout_below="@id/lin_lyt_filter"
 
-    <Button
-        android:id="@+id/btn_grayscale"
+   android:layout_above="@id/seek_bar"
+        android:layout_marginBottom="@dimen/dim_8">
+
+        <Button
+
+            android:id="@+id/btn_sepia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginRight="@dimen/dim_8"
+            android:text="@string/sepia" />
+
+        <Button
+            android:id="@+id/btn_grayscale"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/gray" />
+
+
+    </LinearLayout>
+    <TextView
+        android:layout_above="@+id/seek_bar"
+        android:text="@string/Adjust"
+        android:textSize="@dimen/dim_24"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/gray"
-      />
-</LinearLayout>
+        android:layout_height="wrap_content"/>
+
+        <androidx.appcompat.widget.AppCompatSeekBar
+            android:layout_marginBottom="@dimen/dim_24"
+            android:id="@+id/seek_bar"
+            android:layout_alignParentBottom="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
 
 </RelativeLayout>

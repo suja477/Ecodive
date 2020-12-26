@@ -7,11 +7,15 @@ import androidx.core.content.FileProvider;
 import jp.co.cyberagent.android.gpuimage.GPUImage;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageGrayscaleFilter;
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageSaturationFilter;
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageSepiaToneFilter;
 
 import android.app.Notification;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -20,6 +24,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Parcelable;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,6 +39,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -58,6 +64,8 @@ public class ImageActivity extends AppCompatActivity {
         ab.setHomeButtonEnabled(true);
         ab.setDisplayHomeAsUpEnabled(true);
         ab.show();
+        mSeekBar=findViewById(R.id.seek_bar);
+        mSeekBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
         grayscaleBtn = findViewById(R.id.btn_grayscale);
         sepiaBtn = findViewById(R.id.btn_sepia);
         Intent imageIntent = getIntent();
@@ -74,7 +82,7 @@ public class ImageActivity extends AppCompatActivity {
         Uri imageUri = fileimagepath;
 
         gpuImage = new GPUImage(getApplicationContext());
-        gpuImage.setGLSurfaceView((GLSurfaceView) findViewById(R.id.gpusurfaceview));
+        gpuImage.setGLSurfaceView( findViewById(R.id.gpusurfaceview));
         gpuImage.setImage(imageUri); // this loads image on the current thread, should be run in a thread
         grayscaleBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -102,10 +110,13 @@ public class ImageActivity extends AppCompatActivity {
     private SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            /*if (mFilterAdjuster != null) {
-                mFilterAdjuster.adjust(progress);
-            }*/
-            gpuImage.requestRender();
+           // seekText.setText(String.valueOf(i*2)+(getResources().getString(R.string.km)));
+            seekBar.setProgress(progress);
+           float sat= progress/10f;
+
+            gpuImage.setImage(getGPUImageFromAssets(sat));
+            Log.i(TAG,"seek-------"+sat);
+          //  gpuImage.requestRender();
         }
 
         @Override
@@ -117,37 +128,64 @@ public class ImageActivity extends AppCompatActivity {
         }
     };
 
+
+
+    public Bitmap getGPUImageFromAssets(float progress){
+
+        Bitmap bitmap=null;
+        try {
+            InputStream image_stream;
+            try {
+                image_stream = getApplicationContext().getContentResolver().openInputStream(fileimagepath);
+                bitmap = BitmapFactory.decodeStream(image_stream);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        //use GPUImage processed image
+        GPUImage gpuImageNew = new GPUImage(this);
+        gpuImageNew.setImage(bitmap);
+        gpuImageNew.setFilter(new GPUImageSaturationFilter(20));
+        bitmap = gpuImageNew.getBitmapWithFilterApplied();
+        return bitmap;
+    }
+
+
     public void saveImage(View v) {
        new SaveData().execute();
 
     }
 
     public void shareImage(View v) {
-        saveImage(v);
-        Bitmap bitmapFiltered = gpuImage.getBitmapWithFilterApplied();
-       // Uri uri = FileProvider.getUriForFile(ImageActivity.this, BuildConfig.APPLICATION_ID + ".provider", savedImageFile);
-       // Uri uri=Uri.fromFile(savedImageFile);
-      /*  Intent share = new Intent(Intent.ACTION_SEND);
-        share.setType("image/*");
-        share.putExtra(Intent.EXTRA_STREAM, fileimagepath);//--------------change
-        startActivity(Intent.createChooser(share,"Share via"));*/
-        File file = savedImageFile;
-        Intent install = new Intent(Intent.ACTION_VIEW);
-        install.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-// Old Approach
-        String mimeType;
-        install.setDataAndType(Uri.fromFile(file), "image/*");
-// End Old approach
-// New Approach
-        Uri apkURI = FileProvider.getUriForFile(
-                getApplicationContext(),
-                getApplicationContext()
-                        .getPackageName() + ".provider", file);
-        install.setDataAndType(apkURI, "image/*");
-        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-// End New Approach
-        startActivity(install);
+        File root = getExternalFilesDir(null);
 
+        File mediaStorageDir = new File (root.getAbsolutePath() + "/ecodiver");
+           // Create the storage directory if it does not exist
+        if (!mediaStorageDir.exists()) {
+            String timeStamp = new SimpleDateFormat("ddMMyyyy_HHmm").format(new Date());
+            String mImageName = "MI_" + timeStamp + ".jpg";
+            File mediaFile = new File(mediaStorageDir.getPath() + File.separator + mImageName);
+            if(!mediaFile.exists())
+            {
+               new SaveandShareData().execute();
+
+            }
+            else{
+               // Bitmap bitmapFiltered = gpuImage.getBitmapWithFilterApplied();
+                Uri uri = FileProvider.getUriForFile(ImageActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider", mediaFile);
+
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("image/*");
+                share.putExtra(Intent.EXTRA_STREAM, uri);//--------------change
+                startActivity(Intent.createChooser(share,"Share via"));
+
+            }
+        }else
+            new SaveandShareData().execute();
     }
 
     @Override
@@ -161,24 +199,6 @@ public class ImageActivity extends AppCompatActivity {
         return (super.onOptionsItemSelected(menuItem));
     }
 
-  /*  private void storeImage(Bitmap image) {
-        File pictureFile = getOutputMediaFile();
-        if (pictureFile == null) {
-            Log.d(TAG,
-                    "Error creating media file, check storage permissions: ");// e.getMessage());
-            return;
-        }
-        try {
-            FileOutputStream fos = new FileOutputStream(pictureFile);
-            image.compress(Bitmap.CompressFormat.PNG, 90, fos);
-            fos.close();
-            Log.d(TAG, "-----------file saved-----------"+pictureFile.getAbsolutePath());
-        } catch (FileNotFoundException e) {
-            Log.d(TAG, "File not found: " + e.getMessage());
-        } catch (IOException e) {
-            Log.d(TAG, "Error accessing file: " + e.getMessage());
-        }
-    }*/
 
     /**
      * Create a File for saving an image or video
@@ -266,6 +286,54 @@ public class ImageActivity extends AppCompatActivity {
             if(result)
                 Toast.makeText(getApplicationContext(),"saved ",
                         Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(getApplicationContext(),"some error occured ",
+                        Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class SaveandShareData extends AsyncTask<String, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+
+            savedImageFile = getOutputMediaFile();
+            FileOutputStream out = null;
+            Bitmap bitmap = gpuImage.getBitmapWithFilterApplied();
+            try {
+                out = new FileOutputStream(savedImageFile);
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                Log.i(TAG, "-----------file saved-----------"+savedImageFile.getAbsolutePath());
+                scanFile(savedImageFile.getAbsolutePath());
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                try {
+                    if (out != null) {
+                        out.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+
+        protected void onPostExecute(Boolean result) {
+            //This is run on the UI thread so you can do as you wish here
+            if(result) {
+                Bitmap bitmapFiltered = gpuImage.getBitmapWithFilterApplied();
+                Uri uri = FileProvider.getUriForFile(ImageActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider", savedImageFile);
+
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("image/*");
+                share.putExtra(Intent.EXTRA_STREAM, uri);//--------------change
+                startActivity(Intent.createChooser(share,"Share via"));
+            }
+
             else
                 Toast.makeText(getApplicationContext(),"some error occured ",
                         Toast.LENGTH_SHORT).show();

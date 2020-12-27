@@ -31,6 +31,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
@@ -51,6 +52,7 @@ public class ImageActivity extends AppCompatActivity {
     private Button sepiaBtn;
     private Button grayscaleBtn;
     private GPUImage gpuImage;
+    private GPUImage original;
     private GPUImageFilter mCurrentImageFilter;
     private SeekBar mSeekBar;
 
@@ -80,7 +82,9 @@ public class ImageActivity extends AppCompatActivity {
 
         GPUImageGrayscaleFilter gpuImageGrayscaleFilter = new GPUImageGrayscaleFilter();
         Uri imageUri = fileimagepath;
-
+       original = new GPUImage(getApplicationContext());
+       // original.setGLSurfaceView( findViewById(R.id.gpusurfaceviewOriginal));
+        original.setImage(imageUri);
         gpuImage = new GPUImage(getApplicationContext());
         gpuImage.setGLSurfaceView( findViewById(R.id.gpusurfaceview));
         gpuImage.setImage(imageUri); // this loads image on the current thread, should be run in a thread
@@ -113,10 +117,15 @@ public class ImageActivity extends AppCompatActivity {
            // seekText.setText(String.valueOf(i*2)+(getResources().getString(R.string.km)));
             seekBar.setProgress(progress);
            float sat= progress/10f;
-
-            gpuImage.setImage(getGPUImageFromAssets(sat));
+           if(mCurrentImageFilter!=null){
+               Bitmap bitmap=gpuImage.getBitmapWithFilterApplied();
+               gpuImage.setImage(bitmap);
+               gpuImage.setFilter(new GPUImageSaturationFilter(progress));
+           }else
+            gpuImage.setFilter(new GPUImageSaturationFilter(progress));
+           // gpuImage.setImage(getGPUImageFromAssets(sat));
             Log.i(TAG,"seek-------"+sat);
-          //  gpuImage.requestRender();
+          // gpuImage.requestRender();
         }
 
         @Override
@@ -131,10 +140,10 @@ public class ImageActivity extends AppCompatActivity {
 
 
     public Bitmap getGPUImageFromAssets(float progress){
+        InputStream image_stream = null;
 
         Bitmap bitmap=null;
         try {
-            InputStream image_stream;
             try {
                 image_stream = getApplicationContext().getContentResolver().openInputStream(fileimagepath);
                 bitmap = BitmapFactory.decodeStream(image_stream);
@@ -143,6 +152,12 @@ public class ImageActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }finally {
+            try {
+               image_stream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         //use GPUImage processed image
@@ -168,7 +183,7 @@ public class ImageActivity extends AppCompatActivity {
             String timeStamp = new SimpleDateFormat("ddMMyyyy_HHmm").format(new Date());
             String mImageName = "MI_" + timeStamp + ".jpg";
             File mediaFile = new File(mediaStorageDir.getPath() + File.separator + mImageName);
-            if(!mediaFile.exists())
+            if(!mediaFile.exists())//if image file not exists
             {
                new SaveandShareData().execute();
 
@@ -260,6 +275,7 @@ public class ImageActivity extends AppCompatActivity {
             savedImageFile = getOutputMediaFile();
             FileOutputStream out = null;
             Bitmap bitmap = gpuImage.getBitmapWithFilterApplied();
+            Log.i(TAG,"got bitmapwith filter");
             try {
                 out = new FileOutputStream(savedImageFile);
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
@@ -324,7 +340,7 @@ public class ImageActivity extends AppCompatActivity {
         protected void onPostExecute(Boolean result) {
             //This is run on the UI thread so you can do as you wish here
             if(result) {
-                Bitmap bitmapFiltered = gpuImage.getBitmapWithFilterApplied();
+              //  Bitmap bitmapFiltered = gpuImage.getBitmapWithFilterApplied();
                 Uri uri = FileProvider.getUriForFile(ImageActivity.this,
                         BuildConfig.APPLICATION_ID + ".provider", savedImageFile);
 

@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int WRITE_EXTERNAL_STORAGE = 1;
     private static final int READ_EXTERNAL_STORAGE = 1;
+    private static final int PICK_VIDEO = 2;
     private ImageView ivUploadImage1;
 
     private Uri filePathImage;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private  ProgressDialog progDailog;
     public static Uri imagepath;
     private ImageView ivUploadVideo;
+    private Uri fileVideopath;
 
     public void onResume()
     {
@@ -97,6 +99,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        ivUploadVideo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showVideoChooser();
+
+            }
+        });
+
     }
 
   /*  private void showProgressDialog() {
@@ -125,6 +135,22 @@ public class MainActivity extends AppCompatActivity {
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(Intent.createChooser(intent, getResources().getString(R.string.pic_select)), PICK_IMAGE_REQUEST);
     }
+    //open image chooser and upload image
+    public void showVideoChooser() {
+        int permissionCheck = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    MainActivity.this, new String[]{String.valueOf(READ_EXTERNAL_STORAGE)},
+                    READ_EXTERNAL_STORAGE);
+        }
+
+        Intent intent = new Intent();
+
+        intent.setType("video/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, getResources().getString(R.string.pic_select)), PICK_VIDEO);
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -152,6 +178,16 @@ public class MainActivity extends AppCompatActivity {
                 ivGrayImage.setImageBitmap(newbitmap);
                 sketchImage.setImageBitmap(sepia);}*/
 
+        }
+        if (requestCode == PICK_VIDEO && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            fileVideopath = data.getData();
+            Log.i("video", fileVideopath.toString());
+            Intent filterIntent = new Intent(getApplicationContext(), VideoActivity.class);
+            Bundle bundle = new Bundle();
+            bundle.putParcelable("VIDEO", fileVideopath);
+            filterIntent.putExtra("BUNDLE_EXTRA", bundle);
+
+            startActivity(filterIntent);
         }
     }
 

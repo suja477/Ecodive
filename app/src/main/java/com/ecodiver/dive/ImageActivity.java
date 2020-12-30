@@ -55,7 +55,7 @@ public class ImageActivity extends AppCompatActivity {
     private GPUImage original;
     private GPUImageFilter mCurrentImageFilter;
     private SeekBar mSeekBar;
-
+    private GLSurfaceView glSurfaceView;
     private File savedImageFile;
 
     @Override
@@ -86,6 +86,7 @@ public class ImageActivity extends AppCompatActivity {
        // original.setGLSurfaceView( findViewById(R.id.gpusurfaceviewOriginal));
         original.setImage(imageUri);
         gpuImage = new GPUImage(getApplicationContext());
+         glSurfaceView = findViewById(R.id.gpusurfaceview);
         gpuImage.setGLSurfaceView( findViewById(R.id.gpusurfaceview));
         gpuImage.setImage(imageUri); // this loads image on the current thread, should be run in a thread
         grayscaleBtn.setOnClickListener(new View.OnClickListener() {
@@ -117,13 +118,11 @@ public class ImageActivity extends AppCompatActivity {
            // seekText.setText(String.valueOf(i*2)+(getResources().getString(R.string.km)));
             seekBar.setProgress(progress);
            float sat= progress/10f;
-           if(mCurrentImageFilter!=null){
+
                Bitmap bitmap=gpuImage.getBitmapWithFilterApplied();
                gpuImage.setImage(bitmap);
                gpuImage.setFilter(new GPUImageSaturationFilter(progress));
-           }else
-            gpuImage.setFilter(new GPUImageSaturationFilter(progress));
-           // gpuImage.setImage(getGPUImageFromAssets(sat));
+              
             Log.i(TAG,"seek-------"+sat);
           // gpuImage.requestRender();
         }

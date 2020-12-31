@@ -118,10 +118,20 @@ public class ImageActivity extends AppCompatActivity {
            // seekText.setText(String.valueOf(i*2)+(getResources().getString(R.string.km)));
             seekBar.setProgress(progress);
            float sat= progress/10f;
+                GPUImage gpuImagecopy=original;
 
-               Bitmap bitmap=gpuImage.getBitmapWithFilterApplied();
-               gpuImage.setImage(bitmap);
-               gpuImage.setFilter(new GPUImageSaturationFilter(progress));
+               Bitmap bitmap=gpuImagecopy.getBitmapWithFilterApplied();//get original image
+
+            if(mCurrentImageFilter!=null){
+                Log.i(TAG,"flter select"+mCurrentImageFilter.toString());
+                gpuImagecopy.setFilter(mCurrentImageFilter);
+                bitmap=gpuImagecopy.getBitmapWithFilterApplied();
+
+            }
+            gpuImagecopy.setImage(bitmap);
+            gpuImagecopy.setFilter(new GPUImageSaturationFilter(progress));
+            bitmap=gpuImagecopy.getBitmapWithFilterApplied();
+            gpuImage.setImage(bitmap);
               
             Log.i(TAG,"seek-------"+sat);
           // gpuImage.requestRender();
